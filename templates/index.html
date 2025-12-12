@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prediksi Saham BBRI</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { background-color: #f4f6f9; padding: 30px 0; }
+        .main-card { max-width: 850px; margin: auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+        .chart-container { position: relative; height: 350px; width: 100%; margin-bottom: 30px; }
+        .result-box { background: #fff; border: 2px solid #e9ecef; border-radius: 10px; padding: 20px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="main-card">
+            <div class="text-center mb-4">
+                <h2 class="font-weight-bold">📈 Dashboard Analisa Saham</h2>
+                <span class="badge badge-primary">Model: Linear Regression</span>
+                <span class="badge badge-info">Dataset: Yahoo Finance (3 Tahun)</span>
+            </div>
+
+            <div class="chart-container">
+                <canvas id="stockChart"></canvas>
+            </div>
+            <hr>
+
+            <div class="bg-light p-4 rounded text-center">
+                <h5 class="mb-3">Simulasi Prediksi Harian</h5>
+                <p class="small text-muted">Masukkan harga Open pagi ini untuk prediksi harga Close nanti sore.</p>
+                <form action="/predict" method="post" class="row justify-content-center">
+                    <div class="col-md-8">
+                        <div class="input-group">
+                            <div class="input-group-prepend"><span class="input-group-text">Rp</span></div>
+                            <input type="number" step="any" name="harga_open" class="form-control" placeholder="Contoh: 4500" required value="{{ input_val }}">
+                            <div class="input-group-append"><button class="btn btn-primary" type="submit">Prediksi</button></div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            {% if prediction_text %}
+            <div class="result-box text-center">
+                <h6 class="text-muted">Hasil Prediksi Harga Close:</h6>
+                <h1 class="font-weight-bold display-4">{{ prediction_text }}</h1>
+
+                <div class="mt-3 p-3 rounded" style="background-color: #f8f9fa; border-left: 5px solid {% if selisih > 0 %}#28a745{% else %}#dc3545{% endif %};">
+                    <h4 class="{{ trend_color }} font-weight-bold">{{ trend_status }}</h4>
+                    <p class="mb-0 small text-dark">{{ penjelasan_trend }}</p>
+                    <small class="text-muted">Selisih: Rp {{ "%.2f"|format(selisih) }}</small>
+                </div>
+
+                {% if show_calc %}
+                <div class="text-left mt-4 pt-3 border-top">
+                    <h6 class="font-weight-bold text-info">🧮 Logika Perhitungan (Formula Training)</h6>
+                    <p class="small text-muted mb-2">Model ini dilatih menggunakan metode <i>Ordinary Least Squares</i>. Berikut adalah rumus matematika yang terbentuk dari data latih:</p>
+                    
+                    <div class="alert alert-secondary py-2 text-center" style="font-family: monospace; font-size: 1.1em;">
+                        Harga Close = {{ "%.4f"|format(nilai_a) }} + ({{ "%.4f"|format(nilai_b) }} × Harga Open)
+                    </div>
+
+                    <ul class="small text-muted pl-4">
+                        <li><strong>Intercept (a):</strong> {{ "%.4f"|format(nilai_a) }} (Titik awal garis regresi)</li>
+                        <li><strong>Slope (b):</strong> {{ "%.4f"|format(nilai_b) }} (Koefisien kemiringan trend)</li>
+                        <li>Jika <strong>Slope < 1</strong>, maka secara statistik harga cenderung turun harian (Bearish).</li>
+                        <li>Jika <strong>Slope > 1</strong>, maka harga cenderung naik (Bullish).</li>
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+
+    <script>
+        const labels = {{ labels | default([]) | tojson }};
+        const dataValues = {{ values | default([]) | tojson }};
+        if (document.getElementById('stockChart') && labels.length > 0) {
+            new Chart(document.getElementById('stockChart').getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Data Historis (Close)',
+                        data: dataValues,
+                        borderColor: '#007bff',
+                        backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        fill: true,
+                        tension: 0.1
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { maxTicksLimit: 8 } } } }
+            });
+        }
+    </script>
+</body>
+</html>
