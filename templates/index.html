@@ -3,98 +3,134 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prediksi Saham BBRI</title>
+    <title>Prediksi Saham Masa Depan</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
     <style>
-        body { background-color: #f4f6f9; padding: 30px 0; }
-        .main-card { max-width: 850px; margin: auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
-        .chart-container { position: relative; height: 350px; width: 100%; margin-bottom: 30px; }
-        .result-box { background: #fff; border: 2px solid #e9ecef; border-radius: 10px; padding: 20px; margin-top: 20px; }
+        body { background-color: #f4f6f9; padding: 40px 0; }
+        .main-card {
+            max-width: 800px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        }
+        .chart-container {
+            position: relative;
+            height: 320px;
+            margin-bottom: 30px;
+        }
+        .result-section {
+            border-left: 5px solid #007bff;
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="main-card">
-            <div class="text-center mb-4">
-                <h2 class="font-weight-bold">📈 Dashboard Analisa Saham</h2>
-                <span class="badge badge-primary">Model: Linear Regression</span>
-                <span class="badge badge-info">Dataset: Yahoo Finance (3 Tahun)</span>
-            </div>
+        <div class="main-card text-center">
+            
+            <h2 class="font-weight-bold mb-2">📅 Future Stock Forecasting</h2>
+            <p class="text-muted mb-4">Metode: Time Series Linear Regression</p>
 
             <div class="chart-container">
-                <canvas id="stockChart"></canvas>
+                <canvas id="myChart"></canvas>
             </div>
-            <hr>
 
-            <div class="bg-light p-4 rounded text-center">
-                <h5 class="mb-3">Simulasi Prediksi Harian</h5>
-                <p class="small text-muted">Masukkan harga Open pagi ini untuk prediksi harga Close nanti sore.</p>
-                <form action="/predict" method="post" class="row justify-content-center">
-                    <div class="col-md-8">
-                        <div class="input-group">
-                            <div class="input-group-prepend"><span class="input-group-text">Rp</span></div>
-                            <input type="number" step="any" name="harga_open" class="form-control" placeholder="Contoh: 4500" required value="{{ input_val }}">
-                            <div class="input-group-append"><button class="btn btn-primary" type="submit">Prediksi</button></div>
-                        </div>
-                    </div>
+            <div class="bg-white border rounded p-4 mb-4 shadow-sm">
+                <h5 class="mb-3">Pilih Tanggal Prediksi (Masa Depan)</h5>
+                <form action="/predict" method="post" class="form-inline justify-content-center">
+                    <label class="sr-only">Tanggal</label>
+                    <input type="date" name="tanggal_target" class="form-control form-control-lg mr-2" required value="{{ input_val }}">
+                    <button type="submit" class="btn btn-primary btn-lg">Ramalkan Harga 🚀</button>
                 </form>
             </div>
 
             {% if prediction_text %}
-            <div class="result-box text-center">
-                <h6 class="text-muted">Hasil Prediksi Harga Close:</h6>
-                <h1 class="font-weight-bold display-4">{{ prediction_text }}</h1>
-
-                <div class="mt-3 p-3 rounded" style="background-color: #f8f9fa; border-left: 5px solid {% if selisih > 0 %}#28a745{% else %}#dc3545{% endif %};">
-                    <h4 class="{{ trend_color }} font-weight-bold">{{ trend_status }}</h4>
-                    <p class="mb-0 small text-dark">{{ penjelasan_trend }}</p>
-                    <small class="text-muted">Selisih: Rp {{ "%.2f"|format(selisih) }}</small>
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white font-weight-bold">
+                    Hasil Ramalan untuk: {{ tanggal_hasil }}
                 </div>
-
-                {% if show_calc %}
-                <div class="text-left mt-4 pt-3 border-top">
-                    <h6 class="font-weight-bold text-info">🧮 Logika Perhitungan (Formula Training)</h6>
-                    <p class="small text-muted mb-2">Model ini dilatih menggunakan metode <i>Ordinary Least Squares</i>. Berikut adalah rumus matematika yang terbentuk dari data latih:</p>
+                <div class="card-body">
+                    <h1 class="display-4 font-weight-bold text-dark">{{ prediction_text }}</h1>
                     
-                    <div class="alert alert-secondary py-2 text-center" style="font-family: monospace; font-size: 1.1em;">
-                        Harga Close = {{ "%.4f"|format(nilai_a) }} + ({{ "%.4f"|format(nilai_b) }} × Harga Open)
+                    <div class="mt-3 p-2 border rounded d-inline-block bg-light">
+                        <span class="font-weight-bold {{ trend_color }}" style="font-size: 1.3em;">
+                            {{ trend_status }}
+                        </span>
+                        <br>
+                        <small class="text-muted">
+                            Selisih dari harga terakhir (Rp {{ "{:,.0f}".format(last_price|default(0)) }}): 
+                            <strong>Rp {{ "{:,.2f}".format(selisih | default(0)) }}</strong>
+                        </small>
                     </div>
 
-                    <ul class="small text-muted pl-4">
-                        <li><strong>Intercept (a):</strong> {{ "%.4f"|format(nilai_a) }} (Titik awal garis regresi)</li>
-                        <li><strong>Slope (b):</strong> {{ "%.4f"|format(nilai_b) }} (Koefisien kemiringan trend)</li>
-                        <li>Jika <strong>Slope < 1</strong>, maka secara statistik harga cenderung turun harian (Bearish).</li>
-                        <li>Jika <strong>Slope > 1</strong>, maka harga cenderung naik (Bullish).</li>
-                    </ul>
+                    {% if show_calc %}
+                    <hr>
+                    <div class="text-left small bg-light p-3 rounded border">
+                        <h6 class="font-weight-bold text-info">🧮 Logika Perhitungan (Linear Regression):</h6>
+                        <ul class="list-unstyled mb-0">
+                            <li>1. Tanggal <b>{{ input_val }}</b> diubah menjadi Angka Ordinal: <b>{{ ordinal_val }}</b></li>
+                            <li>2. Dimasukkan ke Rumus: <code>Y = a + (b * X)</code></li>
+                            <li class="mt-2 text-muted">
+                                <code>Harga = {{ "%.4f"|format(nilai_a) }} + ({{ "%.4f"|format(nilai_b) }} * {{ ordinal_val }})</code>
+                            </li>
+                        </ul>
+                    </div>
+                    {% endif %}
                 </div>
-                {% endif %}
             </div>
             {% endif %}
 
+            <div class="mt-5 text-muted small">
+                Tugas Project Manajemen Informatika - Polinema
+            </div>
         </div>
     </div>
 
     <script>
+        // Data dikirim dari Flask
         const labels = {{ labels | default([]) | tojson }};
-        const dataValues = {{ values | default([]) | tojson }};
-        if (document.getElementById('stockChart') && labels.length > 0) {
-            new Chart(document.getElementById('stockChart').getContext('2d'), {
+        const values = {{ values | default([]) | tojson }};
+
+        if(document.getElementById('myChart')) {
+            const ctx = document.getElementById('myChart').getContext('2d');
+            new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: 'Data Historis (Close)',
-                        data: dataValues,
+                        label: 'Riwayat Harga Saham',
+                        data: values,
                         borderColor: '#007bff',
                         backgroundColor: 'rgba(0, 123, 255, 0.1)',
                         borderWidth: 2,
-                        pointRadius: 0,
+                        pointRadius: 0, // Hilangkan titik biar grafik mulus
+                        pointHoverRadius: 5,
                         fill: true,
                         tension: 0.1
                     }]
                 },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { maxTicksLimit: 8 } } } }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: true, position: 'top' }
+                    },
+                    scales: {
+                        x: { 
+                            ticks: { maxTicksLimit: 8 } // Batasi jumlah tanggal di sumbu X
+                        },
+                        y: {
+                            beginAtZero: false 
+                        }
+                    }
+                }
             });
         }
     </script>
